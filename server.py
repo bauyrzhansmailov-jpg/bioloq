@@ -209,6 +209,21 @@ class RequestHandler(BaseHTTPRequestHandler):
         if path == '/':            return self._serve_file('exam-prep.html')
         if path == '/login':       return self._serve_file('login.html')
         if path == '/practice-exam.html': return self._serve_file('practice-exam.html')
+        if path.startswith('/icons/'):
+            content_type = 'image/png'
+            if path.endswith('.jpg') or path.endswith('.jpeg'):
+                content_type = 'image/jpeg'
+            elif path.endswith('.webp'):
+                content_type = 'image/webp'
+            elif path.endswith('.svg'):
+                content_type = 'image/svg+xml'
+            return self._serve_file(path.lstrip('/'), content_type=content_type)
+        
+        if path == '/manifest.webmanifest':
+            return self._serve_file('manifest.webmanifest', content_type='application/manifest+json')
+        
+        if path == '/sw.js':
+            return self._serve_file('sw.js', content_type='application/javascript')
 
         if path == '/api/me':
             session = get_session(get_token_from_request(self))
