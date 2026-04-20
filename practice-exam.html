@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Practice Exam - ExamPrep</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #f5f0e8;
+            --bg-secondary: #ede8df;
+            --bg-card: #faf8f4;
+            --accent-primary: #2d6a4f;
+            --accent-secondary: #1b4332;
+            --accent-warning: #d4820a;
+            --accent-error: #c0392b;
+            --text-primary: #1a1a2e;
+            --text-secondary: #3d3d5c;
+            --text-muted: #7a7a9a;
+            --border: rgba(45, 106, 79, 0.2);
+            --shadow: rgba(26, 26, 46, 0.12);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .grain-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.03;
+            pointer-events: none;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' /%3E%3C/svg%3E");
+            z-index: 1000;
+        }
+
+        header {
+            padding: 2rem 4%;
+            background: rgba(245, 240, 232, 0.92);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .exam-progress {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.1rem;
+            color: var(--accent-secondary);
+            font-weight: 600;
+        }
+
+        main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 3rem 4%;
+        }
+
+        .exam-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .exam-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--accent-primary);
+        }
+
+        .exam-info {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+        }
+
+        .practice-question-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            transition: all 0.3s ease;
+        }
+
+        .practice-question-item.answered {
+            border-color: var(--accent-secondary);
+        }
+
+        .practice-question-number {
+            display: inline-block;
+            padding: 0.4rem 0.8rem;
+            background: var(--accent-primary);
+            color: #ffffff;
+            border-radius: 8px;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .question-meta {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .meta-badge {
+            padding: 0.35rem 0.8rem;
+            background: rgba(27, 67, 50, 0.1);
+            border: 1px solid var(--accent-secondary);
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent-secondary);
+        }
+
+        .source-badge {
+            background: linear-gradient(135deg, rgba(27, 67, 50, 0.12), rgba(27, 67, 50, 0.05));
+            border-color: var(--accent-secondary);
+            color: var(--accent-secondary);
+        }
+
+        .question-text {
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            line-height: 1.8;
+            color: var(--text-primary);
+        }
+
+        .question-text strong {
+            font-weight: 700;
+            color: var(--accent-primary);
+        }
+
+        .question-text em {
+            font-style: italic;
+            color: var(--accent-secondary);
+        }
+
+        .question-text u {
+            text-decoration: underline;
+        }
+
+        .question-image {
+            margin: 1.5rem 0;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .question-image img {
+            max-width: 100%;
+            display: block;
+        }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.4rem 0.8rem;
+            background: linear-gradient(135deg, rgba(45, 106, 79, 0.12), rgba(27, 67, 50, 0.12));
+            border: 1px solid var(--accent-primary);
+            border-radius: 20px;
+            color: var(--accent-primary);
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-right: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .practice-answer-options {
+            margin-top: 1.5rem;
+        }
+
+        .practice-answer-option {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 1.2rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            margin-bottom: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .practice-answer-option:hover {
+            border-color: var(--accent-primary);
+            background: rgba(45, 106, 79, 0.05);
+        }
+
+        .practice-answer-option input[type="radio"],
+        .practice-answer-option input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: var(--accent-primary);
+        }
+
+        .practice-answer-option.selected {
+            background: rgba(45, 106, 79, 0.1);
+            border-color: var(--accent-primary);
+        }
+
+        .calculation-input {
+            width: 100%;
+            padding: 1rem 1.2rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            margin-top: 1.5rem;
+        }
+
+        .calculation-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.1);
+        }
+
+        .image-upload-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            padding: 2rem;
+            background: var(--bg-secondary);
+            border: 2px dashed var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+
+        .image-upload-label:hover {
+            border-color: var(--accent-primary);
+            background: rgba(45, 106, 79, 0.05);
+        }
+
+        .image-preview {
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .image-preview.active {
+            display: block;
+        }
+
+        .image-preview img {
+            max-width: 100%;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            color: #ffffff;
+            border: none;
+            border-radius: 10px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(45, 106, 79, 0.3);
+        }
+
+        .btn span {
+            position: relative;
+            z-index: 1;
+        }
+
+        .btn-submit-exam {
+            width: 100%;
+            margin-top: 2rem;
+            padding: 1.2rem 2rem;
+            font-size: 1.1rem;
+        }
+
+        .btn-secondary {
+            padding: 0.7rem 1.5rem;
+            background: transparent;
+            border: 1px solid var(--accent-primary);
+            color: var(--accent-primary);
+            border-radius: 8px;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-left: 1rem;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(45, 106, 79, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .results-header {
+            text-align: center;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .results-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            color: var(--accent-primary);
+        }
+
+        .score-display {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .score-circle {
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(45, 106, 79, 0.15), rgba(27, 67, 50, 0.15));
+            border: 4px solid var(--accent-primary);
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .score-value {
+            font-size: 4.5rem;
+            font-weight: 800;
+            color: var(--accent-primary);
+            font-family: 'JetBrains Mono', monospace;
+            line-height: 1;
+        }
+
+        .score-total {
+            font-size: 1.8rem;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .score-percentage {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--accent-secondary);
+        }
+
+        .result-question-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .result-question-item.correct {
+            border-color: var(--accent-primary);
+            background: rgba(45, 106, 79, 0.05);
+        }
+
+        .result-question-item.incorrect {
+            border-color: var(--accent-error);
+            background: rgba(241, 91, 181, 0.05);
+        }
+
+        .result-badge {
+            display: inline-block;
+            padding: 0.5rem 1.2rem;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .result-badge.correct {
+            background: var(--accent-primary);
+            color: #ffffff;
+        }
+
+        .result-badge.incorrect {
+            background: var(--accent-error);
+            color: #ffffff;
+        }
+
+        .user-answer-display,
+        .calculation-answer-display,
+        .diagram-answer-display {
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+        }
+
+        .answer-label,
+        .user-answer-label {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.8rem;
+        }
+
+        .calculation-result {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--accent-primary);
+            padding: 1rem;
+            background: var(--bg-card);
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .answer-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .answer-item {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 0.8rem 1rem;
+            background: var(--bg-card);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .answer-item.correct {
+            background: rgba(45, 106, 79, 0.1);
+            border-color: var(--accent-primary);
+        }
+
+        .answer-marker {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border);
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .answer-item.correct .answer-marker {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+            color: #ffffff;
+        }
+
+        .answer-text {
+            flex: 1;
+            color: var(--text-primary);
+        }
+
+        .answer-item.correct .answer-text {
+            font-weight: 600;
+            color: var(--accent-primary);
+        }
+
+        .explanation-section {
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            background: rgba(27, 67, 50, 0.05);
+            border: 1px solid rgba(27, 67, 50, 0.15);
+            border-radius: 10px;
+        }
+
+        .explanation-title {
+            font-weight: 700;
+            color: var(--accent-secondary);
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .explanation-text {
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        .results-actions {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 3rem;
+        }
+
+        #examView, #resultsView {
+            display: none;
+        }
+
+        #examView.active, #resultsView.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="grain-overlay"></div>
+
+    <header>
+        <div class="header-content">
+            <div class="logo">ExamPrep - Practice Exam</div>
+            <div class="exam-progress" id="headerProgress">0 / 0 answered</div>
+        </div>
+    </header>
+
+    <main>
+        <div id="examView" class="active">
+            <div class="exam-header">
+                <h1>🎯 Practice Exam</h1>
+                <div class="exam-info" id="examInfo">Loading questions...</div>
+            </div>
+            <div id="practiceQuestionsList"></div>
+            <button class="btn btn-submit-exam" onclick="submitExam()"><span>Submit Exam</span></button>
+        </div>
+
+        <div id="resultsView">
+            <div class="results-header">
+                <h1>Exam Results</h1>
+                <div class="score-display">
+                    <div class="score-circle">
+                        <span class="score-value" id="scoreValue">0</span>
+                        <span class="score-total">/ <span id="scoreTotal">0</span></span>
+                    </div>
+                    <div class="score-percentage" id="scorePercentage">0%</div>
+                </div>
+            </div>
+            <div id="resultsQuestionsList"></div>
+            <div class="results-actions">
+                <button class="btn" onclick="retryExam()"><span>Try Again</span></button>
+                <button class="btn-secondary" onclick="window.close()"><span>Close Window</span></button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let practiceQuestions = [];
+        let userAnswers = {};
+
+        // Load questions from sessionStorage
+        window.addEventListener('load', () => {
+            const questionsData = sessionStorage.getItem('practiceExamQuestions');
+            
+            if (!questionsData) {
+                alert('No exam questions found. Please start an exam from the Question Bank.');
+                window.close();
+                return;
+            }
+
+            practiceQuestions = JSON.parse(questionsData);
+            
+            document.getElementById('examInfo').textContent = `${practiceQuestions.length} Questions`;
+            
+            renderPracticeQuestions();
+            updateExamProgress();
+        });
+
+        function renderPracticeQuestions() {
+            const container = document.getElementById('practiceQuestionsList');
+            
+            container.innerHTML = practiceQuestions.map((q, index) => {
+                const questionType = q.skills && q.skills.length > 0 ? q.skills[0] : '';
+                
+                return `
+                    <div class="practice-question-item" id="practice-q-${index}">
+                        <div class="practice-question-number">Question ${index + 1}</div>
+                        <div class="question-meta">
+                            ${q.year ? `<div class="meta-badge">📅 ${q.year}</div>` : ''}
+                            ${q.examSource ? `<div class="meta-badge source-badge">🎓 ${q.examSource}</div>` : ''}
+                        </div>
+                        <div class="question-text">${q.text}</div>
+                        ${q.image ? `<div class="question-image"><img src="${q.image}" alt="Question image"></div>` : ''}
+                        
+                        ${renderPracticeAnswerInput(q, index, questionType)}
+                        
+                        <div>
+                            ${q.topics.map(t => `<span class="tag">${t}</span>`).join('')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderPracticeAnswerInput(q, index, questionType) {
+            if (!q.answers) return '';
+
+            if (q.answers.type === 'calculation') {
+                return `
+                    <div class="practice-calculation-input">
+                        <input type="text" class="calculation-input" id="answer-${index}" 
+                               placeholder="Enter your answer" 
+                               onchange="saveUserAnswer(${index}, this.value)">
+                    </div>
+                `;
+            } else if (q.answers.type === 'diagram') {
+                return `
+                    <div class="practice-diagram-upload">
+                        <label class="image-upload-label" for="diagram-${index}">
+                            <span>📊 Click to upload your diagram</span>
+                        </label>
+                        <input type="file" id="diagram-${index}" accept="image/*" 
+                               onchange="saveUserDiagram(${index}, this)" style="display: none;">
+                        <div class="image-preview" id="diagram-preview-${index}">
+                            <img id="diagram-img-${index}" src="" alt="Your diagram">
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Multiple choice
+                const options = q.answers.options || q.answers;
+                const isMultiple = questionType === 'Вопрос с несколькими верными ответами' || questionType === 'Верно-Неверно';
+                const inputType = isMultiple ? 'checkbox' : 'radio';
+                
+                return `
+                    <div class="practice-answer-options">
+                        ${options.map((opt, optIdx) => `
+                            <label class="practice-answer-option" id="opt-${index}-${optIdx}">
+                                <input type="${inputType}" name="answer-${index}" 
+                                       value="${optIdx}" 
+                                       onchange="saveUserAnswer(${index}, ${optIdx}, '${inputType}')">
+                                <span><strong>${opt.label}.</strong> ${opt.text}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                `;
+            }
+        }
+
+        function saveUserAnswer(questionIndex, answer, inputType) {
+            if (inputType === 'checkbox') {
+                const checkboxes = document.querySelectorAll(`input[name="answer-${questionIndex}"]:checked`);
+                userAnswers[questionIndex] = Array.from(checkboxes).map(cb => parseInt(cb.value));
+            } else {
+                userAnswers[questionIndex] = answer;
+            }
+            
+            const questionItem = document.getElementById(`practice-q-${questionIndex}`);
+            if (questionItem) {
+                questionItem.classList.add('answered');
+            }
+            
+            if (inputType) {
+                document.querySelectorAll(`#practice-q-${questionIndex} .practice-answer-option`).forEach(opt => {
+                    opt.classList.remove('selected');
+                });
+                if (inputType === 'radio') {
+                    const selectedOpt = document.getElementById(`opt-${questionIndex}-${answer}`);
+                    if (selectedOpt) selectedOpt.classList.add('selected');
+                } else {
+                    userAnswers[questionIndex].forEach(idx => {
+                        const selectedOpt = document.getElementById(`opt-${questionIndex}-${idx}`);
+                        if (selectedOpt) selectedOpt.classList.add('selected');
+                    });
+                }
+            }
+            
+            updateExamProgress();
+        }
+
+        function saveUserDiagram(questionIndex, input) {
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    userAnswers[questionIndex] = e.target.result;
+                    document.getElementById(`diagram-img-${questionIndex}`).src = e.target.result;
+                    document.getElementById(`diagram-preview-${questionIndex}`).classList.add('active');
+                    
+                    const questionItem = document.getElementById(`practice-q-${questionIndex}`);
+                    if (questionItem) {
+                        questionItem.classList.add('answered');
+                    }
+                    updateExamProgress();
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function updateExamProgress() {
+            const answered = Object.keys(userAnswers).length;
+            const total = practiceQuestions.length;
+            document.getElementById('headerProgress').textContent = `${answered} / ${total} answered`;
+        }
+
+        function submitExam() {
+            if (Object.keys(userAnswers).length < practiceQuestions.length) {
+                if (!confirm('You haven\'t answered all questions. Submit anyway?')) {
+                    return;
+                }
+            }
+
+            let earnedPoints = 0;
+            let totalPoints = 0;
+            let results = [];
+
+            practiceQuestions.forEach((q, index) => {
+                const result = calculateQuestionScore(q, userAnswers[index]);
+                results.push(result);
+                earnedPoints += result.earnedPoints;
+                totalPoints += result.maxPoints;
+            });
+
+            document.getElementById('examView').classList.remove('active');
+            document.getElementById('resultsView').classList.add('active');
+
+            document.getElementById('scoreValue').textContent = earnedPoints.toFixed(1);
+            document.getElementById('scoreTotal').textContent = totalPoints.toFixed(1);
+            const percentage = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
+            document.getElementById('scorePercentage').textContent = `${percentage}%`;
+
+            renderResults(results);
+            
+            window.scrollTo(0, 0);
+        }
+
+        function calculateQuestionScore(question, userAnswer) {
+            const questionType = question.skills && question.skills.length > 0 ? question.skills[0] : '';
+            
+            if (!question.answers || userAnswer === undefined || userAnswer === null) {
+                return { earnedPoints: 0, maxPoints: getMaxPoints(question), isCorrect: false };
+            }
+
+            if (question.answers.type === 'calculation') {
+                const isCorrect = userAnswer.toString().trim().toLowerCase() === 
+                       question.answers.answer.toString().trim().toLowerCase();
+                return { earnedPoints: isCorrect ? 1 : 0, maxPoints: 1, isCorrect };
+            } else if (question.answers.type === 'diagram') {
+                return { earnedPoints: 0, maxPoints: 1, isCorrect: false };
+            } else {
+                const options = question.answers.options || question.answers;
+                
+                // Check if this is a True/False question with points
+                const hasPoints = options.some(opt => opt.points !== null && opt.points !== undefined);
+                
+                if (hasPoints && questionType === 'Верно-Неверно') {
+                    // Points-based scoring for True/False
+                    let earnedPoints = 0;
+                    let maxPoints = 0;
+                    
+                    const userIndices = Array.isArray(userAnswer) ? userAnswer : [parseInt(userAnswer)];
+                    
+                    options.forEach((opt, idx) => {
+                        const optPoints = opt.points || 0;
+                        maxPoints += Math.abs(optPoints);
+                        
+                        if (userIndices.includes(idx)) {
+                            // User selected this option
+                            earnedPoints += optPoints;
+                        }
+                    });
+                    
+                    // Ensure points don't go negative
+                    earnedPoints = Math.max(0, earnedPoints);
+                    
+                    return { 
+                        earnedPoints, 
+                        maxPoints, 
+                        isCorrect: earnedPoints === maxPoints 
+                    };
+                } else {
+                    // Standard correct/incorrect scoring
+                    const correctIndices = options
+                        .map((opt, idx) => opt.isCorrect ? idx : -1)
+                        .filter(idx => idx !== -1);
+
+                    let isCorrect = false;
+                    if (Array.isArray(userAnswer)) {
+                        if (userAnswer.length === correctIndices.length) {
+                            isCorrect = userAnswer.every(idx => correctIndices.includes(idx));
+                        }
+                    } else {
+                        isCorrect = correctIndices.includes(parseInt(userAnswer));
+                    }
+                    
+                    return { earnedPoints: isCorrect ? 1 : 0, maxPoints: 1, isCorrect };
+                }
+            }
+        }
+
+        function getMaxPoints(question) {
+            if (!question.answers) return 1;
+            
+            if (question.answers.type === 'multiple_choice') {
+                const options = question.answers.options || question.answers;
+                const hasPoints = options.some(opt => opt.points !== null && opt.points !== undefined);
+                
+                if (hasPoints) {
+                    return options.reduce((sum, opt) => sum + Math.abs(opt.points || 0), 0);
+                }
+            }
+            
+            return 1;
+        }
+
+        function checkAnswer(question, userAnswer) {
+            const result = calculateQuestionScore(question, userAnswer);
+            return result.isCorrect;
+        }
+
+        function renderResults(results) {
+            const container = document.getElementById('resultsQuestionsList');
+            
+            container.innerHTML = practiceQuestions.map((q, index) => {
+                const result = results[index];
+                const questionType = q.skills && q.skills.length > 0 ? q.skills[0] : '';
+                
+                return `
+                    <div class="result-question-item ${result.isCorrect ? 'correct' : 'incorrect'}">
+                        <div class="result-badge ${result.isCorrect ? 'correct' : 'incorrect'}">
+                            ${result.isCorrect ? '✓ Correct' : '✗ Incorrect'}
+                            ${result.maxPoints > 1 ? ` (${result.earnedPoints.toFixed(1)} / ${result.maxPoints.toFixed(1)} pts)` : ''}
+                        </div>
+                        <div class="question-text">${q.text}</div>
+                        ${q.image ? `<div class="question-image"><img src="${q.image}" alt="Question image"></div>` : ''}
+                        
+                        ${renderUserAnswerDisplay(q, index, questionType)}
+                        ${renderCorrectAnswerDisplay(q)}
+                        
+                        ${q.explanation ? `
+                            <div class="explanation-section">
+                                <div class="explanation-title">💡 Explanation</div>
+                                <div class="explanation-text">${q.explanation}</div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderUserAnswerDisplay(q, index, questionType) {
+            const userAnswer = userAnswers[index];
+            
+            if (userAnswer === undefined || userAnswer === null) {
+                return `<div class="user-answer-display">
+                    <div class="user-answer-label">Your Answer:</div>
+                    <div style="color: var(--text-muted); font-style: italic;">Not answered</div>
+                </div>`;
+            }
+
+            if (q.answers.type === 'calculation') {
+                return `
+                    <div class="user-answer-display">
+                        <div class="user-answer-label">Your Answer:</div>
+                        <div class="calculation-result">${userAnswer}</div>
+                    </div>
+                `;
+            } else if (q.answers.type === 'diagram') {
+                return `
+                    <div class="user-answer-display">
+                        <div class="user-answer-label">Your Diagram:</div>
+                        <div class="question-image"><img src="${userAnswer}" alt="Your diagram"></div>
+                    </div>
+                `;
+            } else {
+                const options = q.answers.options || q.answers;
+                const selectedIndices = Array.isArray(userAnswer) ? userAnswer : [parseInt(userAnswer)];
+                
+                return `
+                    <div class="user-answer-display">
+                        <div class="user-answer-label">Your Answer:</div>
+                        <div class="answer-list">
+                            ${selectedIndices.map(idx => `
+                                <div class="answer-item">
+                                    <div class="answer-marker">${options[idx].label}</div>
+                                    <div class="answer-text">${options[idx].text}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function renderCorrectAnswerDisplay(q) {
+            if (!q.answers) return '';
+
+            if (q.answers.type === 'calculation') {
+                return `
+                    <div class="calculation-answer-display">
+                        <div class="answer-label">Correct Answer:</div>
+                        <div class="calculation-result">${q.answers.answer}</div>
+                    </div>
+                `;
+            } else if (q.answers.type === 'diagram') {
+                return q.answers.answer ? `
+                    <div class="diagram-answer-display">
+                        <div class="answer-label">Correct Diagram:</div>
+                        <div class="question-image">
+                            <img src="${q.answers.answer}" alt="Correct diagram">
+                        </div>
+                    </div>
+                ` : '';
+            } else {
+                const options = q.answers.options || q.answers;
+                return `
+                    <div class="user-answer-display">
+                        <div class="answer-label">Correct Answer${options.filter(o => o.isCorrect).length > 1 ? 's' : ''}:</div>
+                        <div class="answer-list">
+                            ${options.map(a => `
+                                <div class="answer-item ${a.isCorrect ? 'correct' : ''}">
+                                    <div class="answer-marker">${a.label}</div>
+                                    <div class="answer-text">${a.text}</div>
+                                    ${a.isCorrect ? '<span style="margin-left: auto;">✓</span>' : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function retryExam() {
+            userAnswers = {};
+            document.getElementById('resultsView').classList.remove('active');
+            document.getElementById('examView').classList.add('active');
+            renderPracticeQuestions();
+            updateExamProgress();
+            window.scrollTo(0, 0);
+        }
+    </script>
+</body>
+</html>
