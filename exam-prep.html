@@ -246,13 +246,8 @@
         }
 
         .logo {
-            font-size: 1.8rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
         }
 
         .stats {
@@ -1610,7 +1605,7 @@
 
     <header>
         <div class="header-content">
-            <div class="logo">ExamPrep</div>
+            <img src="/icons/logo.png">
             <nav class="main-nav">
                 <button class="nav-tab active" data-page="add">➕ Add Question</button>
                 <button class="nav-tab" data-page="view">📚 Question Bank</button>
