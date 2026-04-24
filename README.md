@@ -3,8 +3,6 @@
 Complete exam preparation system with unlimited question storage using SQLite database.
 
 ## Features
-
-✅ **Unlimited Questions** - No more 10 question limit! Store as many questions as you need
 ✅ **SQLite Database** - All questions stored in `question_bank.db` file
 ✅ **REST API** - Python backend server with HTTP API
 ✅ **All Question Types** - Multiple choice, True/False, Calculation, Diagram
