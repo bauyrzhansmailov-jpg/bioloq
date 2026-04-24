@@ -54,6 +54,20 @@
             position: sticky;
             top: 0;
             z-index: 100;
+            transition: padding 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        header.compact {
+            padding: 0.6rem 4%;
+            box-shadow: 0 4px 14px rgba(26, 26, 46, 0.08);
+        }
+
+        header.compact img {
+            max-height: 38px;
+        }
+
+        header.compact .exam-progress {
+            font-size: 0.9rem;
         }
 
         .header-content {
@@ -738,7 +752,7 @@
             document.getElementById('headerProgress').textContent = `${answered} / ${total} answered`;
         }
 
-        function submitExam() {
+        async function submitExam() {
             if (Object.keys(userAnswers).length < practiceQuestions.length) {
                 if (!confirm('You haven\'t answered all questions. Submit anyway?')) {
                     return;
@@ -756,19 +770,49 @@
                 totalPoints += result.maxPoints;
             });
 
+            const percentage = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
+
+            const payload = {
+                totalQuestions: practiceQuestions.length,
+                answeredQuestions: Object.keys(userAnswers).length,
+                earnedPoints,
+                totalPoints,
+                percentage,
+                filters: JSON.parse(sessionStorage.getItem('practiceExamFilters') || '{}'),
+                items: practiceQuestions.map((q, index) => ({
+                    questionId: q.id,
+                    isCorrect: results[index].isCorrect,
+                    earnedPoints: results[index].earnedPoints,
+                    maxPoints: results[index].maxPoints,
+                    topics: q.topics || [],
+                    examSource: q.examSource || '',
+                    year: q.year || ''
+                }))
+            };
+
+            try {
+                await fetch(`${API_URL}/exam-attempts`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + getToken()
+                    },
+                    body: JSON.stringify(payload)
+                });
+            } catch (error) {
+                console.error('Failed to save exam attempt:', error);
+            }
+
             document.getElementById('examView').classList.remove('active');
             document.getElementById('resultsView').classList.add('active');
 
             document.getElementById('scoreValue').textContent = earnedPoints.toFixed(1);
             document.getElementById('scoreTotal').textContent = totalPoints.toFixed(1);
-            const percentage = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
             document.getElementById('scorePercentage').textContent = `${percentage}%`;
 
             renderResults(results);
-            
             window.scrollTo(0, 0);
         }
-
         function calculateQuestionScore(question, userAnswer) {
             const questionType = question.skills && question.skills.length > 0 ? question.skills[0] : '';
             
@@ -973,6 +1017,22 @@
             updateExamProgress();
             window.scrollTo(0, 0);
         }
+
+        const API_URL = '/api';
+
+        function getToken() {
+            return localStorage.getItem('authToken') || '';
+        }
+
+        window.addEventListener('scroll', () => {
+            const header = document.querySelector('header');
+
+            if (window.scrollY > 80) {
+                header.classList.add('compact');
+            } else {
+                header.classList.remove('compact');
+            }
+        });
     </script>
 </body>
 </html>

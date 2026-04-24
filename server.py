@@ -21,7 +21,6 @@ DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'question_ban
 SESSIONS = {}
 SESSION_HOURS = 24
 
-
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
@@ -43,7 +42,6 @@ def get_token_from_request(handler):
     if auth.startswith('Bearer '):
         return auth[7:]
     return ''
-
 
 class Database:
     def __init__(self, db_path):
@@ -77,6 +75,31 @@ class Database:
                     image       TEXT,
                     created_at  TEXT NOT NULL,
                     updated_at  TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS exam_attempts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    taken_at TEXT NOT NULL,
+                    total_questions INTEGER NOT NULL,
+                    answered_questions INTEGER NOT NULL,
+                    earned_points REAL NOT NULL,
+                    total_points REAL NOT NULL,
+                    percentage REAL NOT NULL,
+                    filters_json TEXT,
+                    FOREIGN KEY (user_id) REFERENCES users(id)
+                );
+                CREATE TABLE IF NOT EXISTS exam_attempt_items (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    attempt_id INTEGER NOT NULL,
+                    question_id INTEGER NOT NULL,
+                    is_correct INTEGER NOT NULL,
+                    earned_points REAL NOT NULL,
+                    max_points REAL NOT NULL,
+                    topic_snapshot TEXT,
+                    source_snapshot TEXT,
+                    year_snapshot TEXT,
+                    FOREIGN KEY (attempt_id) REFERENCES exam_attempts(id),
+                    FOREIGN KEY (question_id) REFERENCES questions(id)
                 );
             ''')
             row = db.execute('SELECT COUNT(*) FROM users').fetchone()
@@ -157,6 +180,173 @@ class Database:
             db.execute('DELETE FROM questions WHERE id=?', (qid,))
             db.commit()
 
+    def save_exam_attempt(self, user_id, payload):
+        now = datetime.now().isoformat()
+        with self.conn() as db:
+            cur = db.execute('''
+                INSERT INTO exam_attempts
+                (user_id, taken_at, total_questions, answered_questions, earned_points, total_points, percentage, filters_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                user_id,
+                now,
+                payload.get('totalQuestions', 0),
+                payload.get('answeredQuestions', 0),
+                payload.get('earnedPoints', 0),
+                payload.get('totalPoints', 0),
+                payload.get('percentage', 0),
+                json.dumps(payload.get('filters', {}))
+            ))
+            attempt_id = cur.lastrowid
+
+            for item in payload.get('items', []):
+                db.execute('''
+                    INSERT INTO exam_attempt_items
+                    (attempt_id, question_id, is_correct, earned_points, max_points, topic_snapshot, source_snapshot, year_snapshot)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    attempt_id,
+                    item.get('questionId'),
+                    1 if item.get('isCorrect') else 0,
+                    item.get('earnedPoints', 0),
+                    item.get('maxPoints', 0),
+                    json.dumps(item.get('topics', [])),
+                    item.get('examSource', ''),
+                    item.get('year', '')
+                ))
+
+            db.commit()
+            return attempt_id
+
+    def get_user_results(self, user_id):
+        with self.conn() as db:
+            rows = db.execute('''
+                SELECT id, taken_at, total_questions, answered_questions,
+                    earned_points, total_points, percentage, filters_json
+                FROM exam_attempts
+                WHERE user_id = ?
+                ORDER BY taken_at DESC
+            ''', (user_id,)).fetchall()
+
+            result = []
+            for r in rows:
+                d = dict(r)
+                d['filters'] = json.loads(d['filters_json']) if d['filters_json'] else {}
+                del d['filters_json']
+                result.append(d)
+            return result
+
+    def get_user_result_stats(self, user_id):
+        with self.conn() as db:
+            topic_rows = db.execute('''
+                SELECT topic.value AS topic,
+                    COUNT(*) AS total,
+                    SUM(is_correct) AS correct,
+                    ROUND(100.0 * SUM(is_correct) / COUNT(*), 1) AS accuracy
+                FROM exam_attempt_items,
+                    json_each(exam_attempt_items.topic_snapshot) AS topic
+                WHERE attempt_id IN (
+                    SELECT id FROM exam_attempts WHERE user_id = ?
+                )
+                GROUP BY topic.value
+                ORDER BY total DESC, topic.value
+            ''', (user_id,)).fetchall()
+
+            source_rows = db.execute('''
+                SELECT source_snapshot AS source,
+                    COUNT(*) AS total,
+                    SUM(is_correct) AS correct,
+                    ROUND(100.0 * SUM(is_correct) / COUNT(*), 1) AS accuracy
+                FROM exam_attempt_items
+                WHERE attempt_id IN (
+                    SELECT id FROM exam_attempts WHERE user_id = ?
+                )
+                GROUP BY source_snapshot
+                ORDER BY total DESC, source_snapshot
+            ''', (user_id,)).fetchall()
+
+            year_rows = db.execute('''
+                SELECT year_snapshot AS year,
+                    COUNT(*) AS total,
+                    SUM(is_correct) AS correct,
+                    ROUND(100.0 * SUM(is_correct) / COUNT(*), 1) AS accuracy
+                FROM exam_attempt_items
+                WHERE attempt_id IN (
+                    SELECT id FROM exam_attempts WHERE user_id = ?
+                )
+                GROUP BY year_snapshot
+                ORDER BY year_snapshot DESC
+            ''', (user_id,)).fetchall()
+
+            return {
+                'byTopic': [dict(r) for r in topic_rows],
+                'bySource': [dict(r) for r in source_rows],
+                'byYear': [dict(r) for r in year_rows],
+            }
+
+    def get_all_results(self):
+        with self.conn() as db:
+            rows = db.execute('''
+                SELECT exam_attempts.id,
+                    users.username,
+                    exam_attempts.taken_at,
+                    exam_attempts.total_questions,
+                    exam_attempts.answered_questions,
+                    exam_attempts.earned_points,
+                    exam_attempts.total_points,
+                    exam_attempts.percentage,
+                    exam_attempts.filters_json
+                FROM exam_attempts
+                JOIN users ON users.id = exam_attempts.user_id
+                ORDER BY exam_attempts.taken_at DESC
+            ''').fetchall()
+
+            result = []
+            for r in rows:
+                d = dict(r)
+                d['filters'] = json.loads(d['filters_json']) if d['filters_json'] else {}
+                del d['filters_json']
+                result.append(d)
+            return result
+
+    def get_all_result_stats(self):
+        with self.conn() as db:
+            topic_rows = db.execute('''
+                SELECT topic.value AS topic,
+                    COUNT(*) AS total,
+                    SUM(is_correct) AS correct,
+                    ROUND(100.0 * SUM(is_correct) / COUNT(*), 1) AS accuracy
+                FROM exam_attempt_items,
+                    json_each(exam_attempt_items.topic_snapshot) AS topic
+                GROUP BY topic.value
+                ORDER BY total DESC, topic.value
+            ''').fetchall()
+
+            source_rows = db.execute('''
+                SELECT source_snapshot AS source,
+                    COUNT(*) AS total,
+                    SUM(is_correct) AS correct,
+                    ROUND(100.0 * SUM(is_correct) / COUNT(*), 1) AS accuracy
+                FROM exam_attempt_items
+                GROUP BY source_snapshot
+                ORDER BY total DESC, source_snapshot
+            ''').fetchall()
+
+            year_rows = db.execute('''
+                SELECT year_snapshot AS year,
+                    COUNT(*) AS total,
+                    SUM(is_correct) AS correct,
+                    ROUND(100.0 * SUM(is_correct) / COUNT(*), 1) AS accuracy
+                FROM exam_attempt_items
+                GROUP BY year_snapshot
+                ORDER BY year_snapshot DESC
+            ''').fetchall()
+
+            return {
+                'byTopic': [dict(r) for r in topic_rows],
+                'bySource': [dict(r) for r in source_rows],
+                'byYear': [dict(r) for r in year_rows],
+            }
 
 class RequestHandler(BaseHTTPRequestHandler):
     db = Database(DB_PATH)
@@ -241,6 +431,26 @@ class RequestHandler(BaseHTTPRequestHandler):
             if not session: return
             return self._json({'users': self.db.get_all_users()})
 
+        if path == '/api/my-results':
+            session = self._auth()
+            if not session: return
+            return self._json({'results': self.db.get_user_results(session['user_id'])})
+
+        if path == '/api/my-results/stats':
+            session = self._auth()
+            if not session: return
+            return self._json(self.db.get_user_result_stats(session['user_id']))
+
+        if path == '/api/results':
+            session = self._auth(require_admin=True)
+            if not session: return
+            return self._json({'results': self.db.get_all_results()})
+
+        if path == '/api/results/stats':
+            session = self._auth(require_admin=True)
+            if not session: return
+            return self._json(self.db.get_all_result_stats())
+
         self._json({'error': 'Not found'}, 404)
 
     def do_POST(self):
@@ -284,6 +494,12 @@ class RequestHandler(BaseHTTPRequestHandler):
                 return self._json({'message': 'User created'}, 201)
             except sqlite3.IntegrityError:
                 return self._json({'error': 'Username already exists'}, 409)
+
+        if path == '/api/exam-attempts':
+            session = self._auth()
+            if not session: return
+            attempt_id = self.db.save_exam_attempt(session['user_id'], self._read_body())
+            return self._json({'id': attempt_id, 'message': 'Exam attempt saved'}, 201)
 
         self._json({'error': 'Not found'}, 404)
 

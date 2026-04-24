@@ -133,32 +133,6 @@
 
         .error-msg.show { display: block; }
 
-        .hint {
-            margin-top: 1.8rem;
-            padding-top: 1.5rem;
-            border-top: 1px solid var(--border);
-            font-size: 0.8rem;
-            color: var(--text-muted);
-        }
-
-        .hint strong { color: var(--text-secondary); }
-
-        .hint-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 0.3rem;
-        }
-
-        .role-badge {
-            display: inline-block;
-            padding: 0.15rem 0.5rem;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-
-        .role-badge.admin { background: rgba(212, 130, 10, 0.15); color: var(--accent-warning); }
-        .role-badge.user  { background: rgba(45, 106, 79, 0.12);  color: var(--accent-primary); }
     </style>
 </head>
 <body>
@@ -184,17 +158,6 @@
             </div>
 
             <button class="btn-login" id="loginBtn" onclick="doLogin()">Sign In</button>
-
-            <div class="hint">
-                <div class="hint-row">
-                    <span><strong>admin</strong> / admin123</span>
-                    <span class="role-badge admin">Administrator</span>
-                </div>
-                <div class="hint-row">
-                    <span><strong>user</strong> / user123</span>
-                    <span class="role-badge user">Read-only</span>
-                </div>
-            </div>
         </div>
     </div>
 
